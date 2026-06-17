@@ -22,6 +22,10 @@ npm run dev
 
 開発サーバーは通常 `http://127.0.0.1:5173/` で確認できます。
 
+## 公開URL
+
+https://ohno-creator.github.io/hinge-torque-simulator/
+
 ## ビルド
 
 ```bash
