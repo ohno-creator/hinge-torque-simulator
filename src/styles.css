@@ -247,15 +247,24 @@ h1 {
   margin-top: 14px;
 }
 
-.range-field input {
+.range-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 126px;
+  gap: 10px;
+  align-items: end;
+}
+
+.range-input-row > input[type="range"] {
   padding: 0;
   accent-color: var(--green);
 }
 
-.range-field strong {
-  justify-self: end;
-  color: var(--ink);
-  font-size: 0.95rem;
+.range-input-row .field {
+  gap: 5px;
+}
+
+.range-input-row .field span {
+  font-size: 0.72rem;
 }
 
 .csv-section textarea {
@@ -703,6 +712,10 @@ h1 {
   .chart-grid,
   .recommendation dl,
   .faq-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .range-input-row {
     grid-template-columns: 1fr;
   }
 
