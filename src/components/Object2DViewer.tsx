@@ -16,40 +16,91 @@ function pointsToString(points: Point[]): string {
   return points.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(" ");
 }
 
+function createBounds(points: Point[]) {
+  const xs = points.map((point) => point.x);
+  const ys = points.map((point) => point.y);
+
+  return {
+    minX: Math.min(...xs),
+    maxX: Math.max(...xs),
+    minY: Math.min(...ys),
+    maxY: Math.max(...ys),
+  };
+}
+
 export function Object2DViewer({ input, currentPoint, product }: Object2DViewerProps) {
   const width = 760;
   const height = 430;
-  const hinge = { x: 118, y: 250 };
   const lengthMm = Math.max(input.objectHeightMm, Math.abs(input.cgXmm) + 90, input.handleDistanceMm + 40);
   const thicknessMm = clamp(input.objectDepthMm * 0.32, 28, 92);
-  const scale = Math.min(1.15, 430 / Math.max(lengthMm + 90, 260));
   const angleRad = ((input.initialAngleDeg + input.currentAngleDeg) * Math.PI) / 180;
   const cos = Math.cos(angleRad);
   const sin = Math.sin(angleRad);
 
-  function toSvg(localX: number, localY: number): Point {
-    const worldX = localX * cos - localY * sin;
-    const worldY = localX * sin + localY * cos;
+  function rotatePoint(localX: number, localY: number): Point {
     return {
-      x: hinge.x + worldX * scale,
-      y: hinge.y - worldY * scale,
+      x: localX * cos - localY * sin,
+      y: localX * sin + localY * cos,
     };
   }
 
-  const objectPoints = [
-    toSvg(0, -thicknessMm / 2),
-    toSvg(lengthMm, -thicknessMm / 2),
-    toSvg(lengthMm, thicknessMm / 2),
-    toSvg(0, thicknessMm / 2),
+  const objectWorldPoints = [
+    rotatePoint(0, -thicknessMm / 2),
+    rotatePoint(lengthMm, -thicknessMm / 2),
+    rotatePoint(lengthMm, thicknessMm / 2),
+    rotatePoint(0, thicknessMm / 2),
   ];
-  const cgPoint = toSvg(input.cgXmm, input.cgYmm);
-  const handlePoint = toSvg(input.handleDistanceMm, 0);
-  const tangent = { x: -sin, y: -cos };
-  const operationEnd = {
-    x: handlePoint.x + tangent.x * 58,
-    y: handlePoint.y + tangent.y * 58,
+  const cgWorld = rotatePoint(input.cgXmm, input.cgYmm);
+  const handleWorld = rotatePoint(input.handleDistanceMm, 0);
+  const arrowLengthMm = clamp(lengthMm * 0.22, 56, 110);
+  const gravityEndWorld = { x: cgWorld.x, y: cgWorld.y - arrowLengthMm };
+  const operationEndWorld = {
+    x: handleWorld.x - sin * arrowLengthMm,
+    y: handleWorld.y + cos * arrowLengthMm,
   };
-  const momentArmX = hinge.x + (input.cgXmm * cos - input.cgYmm * sin) * scale;
+  const momentArmWorld = { x: cgWorld.x, y: 0 };
+  const bounds = createBounds([
+    ...objectWorldPoints,
+    cgWorld,
+    gravityEndWorld,
+    handleWorld,
+    operationEndWorld,
+    momentArmWorld,
+    { x: 0, y: 0 },
+  ]);
+  const margins = { top: 76, right: 72, bottom: 72, left: 72 };
+  const availableWidth = width - margins.left - margins.right;
+  const availableHeight = height - margins.top - margins.bottom;
+  const boundsWidth = Math.max(bounds.maxX - bounds.minX, 1);
+  const boundsHeight = Math.max(bounds.maxY - bounds.minY, 1);
+  const scale = Math.min(1.18, availableWidth / boundsWidth, availableHeight / boundsHeight);
+  const offsetX = margins.left + (availableWidth - boundsWidth * scale) / 2 - bounds.minX * scale;
+  const offsetY = margins.top + (availableHeight - boundsHeight * scale) / 2 + bounds.maxY * scale;
+
+  function toSvg(worldPoint: Point): Point {
+    return {
+      x: offsetX + worldPoint.x * scale,
+      y: offsetY - worldPoint.y * scale,
+    };
+  }
+
+  function labelPoint(point: Point, dx: number, dy: number): Point {
+    return {
+      x: clamp(point.x + dx, 18, width - 112),
+      y: clamp(point.y + dy, 24, height - 18),
+    };
+  }
+
+  const objectPoints = objectWorldPoints.map(toSvg);
+  const hinge = toSvg({ x: 0, y: 0 });
+  const cgPoint = toSvg(cgWorld);
+  const gravityEnd = toSvg(gravityEndWorld);
+  const handlePoint = toSvg(handleWorld);
+  const operationEnd = toSvg(operationEndWorld);
+  const momentArm = toSvg(momentArmWorld);
+  const hingeLabel = labelPoint(hinge, -36, 38);
+  const cgLabel = labelPoint(cgPoint, 14, -12);
+  const handleLabel = labelPoint(handlePoint, 12, 24);
   const statusClass = currentPoint.status === "ok" ? "ok" : currentPoint.status === "check" ? "check" : "ng";
 
   return (
@@ -68,8 +119,8 @@ export function Object2DViewer({ input, currentPoint, product }: Object2DViewerP
         </defs>
 
         <rect x="0" y="0" width={width} height={height} rx="8" fill="#f8faf8" />
-        <path d={`M 64 ${hinge.y} H 700`} stroke="#d8ded8" strokeDasharray="8 8" />
-        <path d={`M ${hinge.x} 52 V 374`} stroke="#d8ded8" strokeDasharray="8 8" />
+        <path d={`M 42 ${hinge.y} H ${width - 42}`} stroke="#d8ded8" strokeDasharray="8 8" />
+        <path d={`M ${hinge.x} 54 V ${height - 54}`} stroke="#d8ded8" strokeDasharray="8 8" />
         <polygon
           points={pointsToString(objectPoints)}
           fill={statusClass === "ng" ? "#fde2de" : statusClass === "check" ? "#fff2d6" : "#e4f5ee"}
@@ -78,10 +129,10 @@ export function Object2DViewer({ input, currentPoint, product }: Object2DViewerP
         />
         <circle cx={hinge.x} cy={hinge.y} r="12" fill="#20262e" />
         <circle cx={hinge.x} cy={hinge.y} r="5" fill="#ffffff" />
-        <line x1={hinge.x} y1={hinge.y} x2={momentArmX} y2={hinge.y} stroke="#7c5c2e" strokeWidth="3" strokeDasharray="7 6" />
-        <line x1={momentArmX} y1={hinge.y} x2={cgPoint.x} y2={cgPoint.y} stroke="#7c5c2e" strokeWidth="2" strokeDasharray="4 5" />
+        <line x1={hinge.x} y1={hinge.y} x2={momentArm.x} y2={hinge.y} stroke="#7c5c2e" strokeWidth="3" strokeDasharray="7 6" />
+        <line x1={momentArm.x} y1={hinge.y} x2={cgPoint.x} y2={cgPoint.y} stroke="#7c5c2e" strokeWidth="2" strokeDasharray="4 5" />
         <circle cx={cgPoint.x} cy={cgPoint.y} r="9" fill="#c2413d" />
-        <line x1={cgPoint.x} y1={cgPoint.y + 12} x2={cgPoint.x} y2={cgPoint.y + 88} stroke="#c2413d" strokeWidth="4" markerEnd="url(#arrow-red)" />
+        <line x1={cgPoint.x} y1={cgPoint.y + 12} x2={gravityEnd.x} y2={gravityEnd.y} stroke="#c2413d" strokeWidth="4" markerEnd="url(#arrow-red)" />
         <circle cx={handlePoint.x} cy={handlePoint.y} r="7" fill="#2563eb" />
         <line x1={handlePoint.x} y1={handlePoint.y} x2={operationEnd.x} y2={operationEnd.y} stroke="#2563eb" strokeWidth="4" markerEnd="url(#arrow-blue)" />
         <path
@@ -91,13 +142,13 @@ export function Object2DViewer({ input, currentPoint, product }: Object2DViewerP
           strokeWidth="3"
           markerEnd="url(#arrow-gray)"
         />
-        <text x={hinge.x - 36} y={hinge.y + 38} className="svg-label">
+        <text x={hingeLabel.x} y={hingeLabel.y} className="svg-label">
           ヒンジ
         </text>
-        <text x={cgPoint.x + 14} y={cgPoint.y - 12} className="svg-label">
+        <text x={cgLabel.x} y={cgLabel.y} className="svg-label">
           重心
         </text>
-        <text x={handlePoint.x + 12} y={handlePoint.y + 24} className="svg-label">
+        <text x={handleLabel.x} y={handleLabel.y} className="svg-label">
           操作点
         </text>
         <text x={width - 172} y={44} className="svg-badge">
