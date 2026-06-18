@@ -32,6 +32,9 @@ function HingeModel({ input, currentPoint }: Object3DViewerProps) {
   const cgZ = clamp(input.cgXmm / 100, 0.25, panelLength);
   const cgY = clamp(input.cgYmm / 120, -0.7, 1.2);
   const statusColor = currentPoint.status === "ng" ? "#c2413d" : currentPoint.status === "check" ? "#b7791f" : "#0f8b65";
+  const panelRotationX = -angleRad;
+  const cgWorldY = (panelDepth + cgY) * Math.cos(panelRotationX) - cgZ * Math.sin(panelRotationX);
+  const cgWorldZ = (panelDepth + cgY) * Math.sin(panelRotationX) + cgZ * Math.cos(panelRotationX);
 
   return (
     <group>
@@ -39,7 +42,7 @@ function HingeModel({ input, currentPoint }: Object3DViewerProps) {
         <cylinderGeometry args={[0.07, 0.07, panelWidth * 1.22, 32]} />
         <meshStandardMaterial color="#20262e" metalness={0.45} roughness={0.32} />
       </mesh>
-      <group rotation={[angleRad, 0, 0]}>
+      <group rotation={[panelRotationX, 0, 0]}>
         <mesh position={[0, panelDepth / 2, panelLength / 2]}>
           <boxGeometry args={[panelWidth, panelDepth, panelLength]} />
           <meshStandardMaterial color={statusColor} roughness={0.55} metalness={0.08} transparent opacity={0.86} />
@@ -52,8 +55,8 @@ function HingeModel({ input, currentPoint }: Object3DViewerProps) {
           <sphereGeometry args={[0.1, 24, 24]} />
           <meshStandardMaterial color="#2563eb" />
         </mesh>
-        <SceneLine points={[[0, panelDepth + cgY, cgZ], [0, panelDepth + cgY - 1.1, cgZ]]} color="#c2413d" />
       </group>
+      <SceneLine points={[[0, cgWorldY, cgWorldZ], [0, cgWorldY - 1.1, cgWorldZ]]} color="#c2413d" />
       <SceneLine points={[[-panelWidth * 0.65, 0, 0], [panelWidth * 0.65, 0, 0]]} color="#20262e" />
       <SceneLine points={[[0, 0, 0], [0, 0, panelLength + 0.5]]} color="#9aa5a1" />
       <SceneLine points={[[0, 0, 0], [0, 1.8, 0]]} color="#9aa5a1" />
