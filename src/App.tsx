@@ -37,11 +37,11 @@ const defaultInput: SimulationInput = {
 };
 
 const sampleCsv = `angleDeg,openTorqueMin,openTorqueNominal,openTorqueMax,closeTorqueMin,closeTorqueNominal,closeTorqueMax
-0,9,11,13,8,10,12
-30,10,12,14,8.8,10.8,12.8
-60,11,13.2,15.5,9.6,11.8,14
-90,9.5,11.5,13.5,8.5,10.5,12.5
-120,8.8,10.8,12.8,7.9,9.8,11.8`;
+0,0.917,1.079,1.241,0.834,0.981,1.128
+30,1.000,1.177,1.354,0.900,1.059,1.218
+60,1.100,1.294,1.488,0.983,1.157,1.331
+90,0.959,1.128,1.297,0.875,1.030,1.184
+120,0.900,1.059,1.218,0.817,0.961,1.105`;
 
 function App() {
   const [input, setInput] = useState<SimulationInput>(defaultInput);
@@ -63,11 +63,14 @@ function App() {
       const next = { ...previous, ...patch };
       const angleMin = Math.min(next.angleStartDeg, next.angleEndDeg);
       const angleMax = Math.max(next.angleStartDeg, next.angleEndDeg);
+      const objectHeightMm = Math.max(1, next.objectHeightMm);
       return {
         ...next,
+        objectHeightMm,
         hingeCount: Math.max(1, Math.round(next.hingeCount)),
         angleStepDeg: Math.max(1, next.angleStepDeg),
         currentAngleDeg: clamp(next.currentAngleDeg, angleMin, angleMax),
+        handleDistanceMm: clamp(next.handleDistanceMm, 0, objectHeightMm),
       };
     });
   }
@@ -146,7 +149,7 @@ function App() {
                 <h2>トルク・余裕・操作力</h2>
               </div>
               <Suspense fallback={<div className="loader-panel">グラフを読み込み中</div>}>
-                <TorqueCharts result={result} forceUnit={input.forceUnit} />
+                <TorqueCharts result={result} forceUnit={input.forceUnit} currentAngleDeg={input.currentAngleDeg} />
               </Suspense>
             </section>
 

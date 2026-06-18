@@ -1,6 +1,17 @@
 import type { HingeProduct, TorqueCurvePoint } from "../types";
+import { NM_TO_KGF_CM } from "./units";
 
 type TorqueKey = keyof Omit<TorqueCurvePoint, "angleDeg">;
+
+export const DEFAULT_TORQUE_TOLERANCE_RATIO = 0.15;
+
+function lowerSpec(nominal: number, toleranceRatio = DEFAULT_TORQUE_TOLERANCE_RATIO): number {
+  return nominal * (1 - toleranceRatio);
+}
+
+function upperSpec(nominal: number, toleranceRatio = DEFAULT_TORQUE_TOLERANCE_RATIO): number {
+  return nominal * (1 + toleranceRatio);
+}
 
 export function sortCurve(curve: TorqueCurvePoint[]): TorqueCurvePoint[] {
   return [...curve].sort((a, b) => a.angleDeg - b.angleDeg);
@@ -38,36 +49,39 @@ export function interpolateTorque(
 }
 
 export function getHoldingTorques(product: HingeProduct, angleDeg: number) {
-  const openMin = interpolateTorque(product.curve, angleDeg, "openTorqueMin");
+  const toleranceRatio = product.torqueToleranceRatio ?? DEFAULT_TORQUE_TOLERANCE_RATIO;
   const openNominal = interpolateTorque(product.curve, angleDeg, "openTorqueNominal");
-  const openMax = interpolateTorque(product.curve, angleDeg, "openTorqueMax");
-  const closeMin = interpolateTorque(product.curve, angleDeg, "closeTorqueMin");
   const closeNominal = interpolateTorque(product.curve, angleDeg, "closeTorqueNominal");
-  const closeMax = interpolateTorque(product.curve, angleDeg, "closeTorqueMax");
 
-  if (
-    openMin === null ||
-    openNominal === null ||
-    openMax === null ||
-    closeMin === null ||
-    closeNominal === null ||
-    closeMax === null
-  ) {
+  if (openNominal === null || closeNominal === null) {
     return {
       min: null,
       nominal: null,
       max: null,
+      openMin: null,
       openNominal: null,
+      openMax: null,
+      closeMin: null,
       closeNominal: null,
+      closeMax: null,
     };
   }
+
+  const openMin = lowerSpec(openNominal, toleranceRatio);
+  const openMax = upperSpec(openNominal, toleranceRatio);
+  const closeMin = lowerSpec(closeNominal, toleranceRatio);
+  const closeMax = upperSpec(closeNominal, toleranceRatio);
 
   return {
     min: Math.min(openMin, closeMin),
     nominal: (openNominal + closeNominal) / 2,
     max: Math.max(openMax, closeMax),
+    openMin,
     openNominal,
+    openMax,
+    closeMin,
     closeNominal,
+    closeMax,
   };
 }
 
@@ -81,15 +95,19 @@ export function parseTorqueCsv(csvText: string): TorqueCurvePoint[] {
   return dataRows
     .map((row) => row.split(",").map((cell) => Number(cell.trim())))
     .filter((values) => values.length >= 7 && values.every((value) => Number.isFinite(value)))
-    .map(([angleDeg, openTorqueMin, openTorqueNominal, openTorqueMax, closeTorqueMin, closeTorqueNominal, closeTorqueMax]) => ({
-      angleDeg,
-      openTorqueMin,
-      openTorqueNominal,
-      openTorqueMax,
-      closeTorqueMin,
-      closeTorqueNominal,
-      closeTorqueMax,
-    }));
+    .map(([angleDeg, openTorqueMin, openTorqueNominal, openTorqueMax, closeTorqueMin, closeTorqueNominal, closeTorqueMax]) => {
+      const toInternalTorque = (valueNm: number) => valueNm * NM_TO_KGF_CM;
+
+      return {
+        angleDeg,
+        openTorqueMin: toInternalTorque(openTorqueMin),
+        openTorqueNominal: toInternalTorque(openTorqueNominal),
+        openTorqueMax: toInternalTorque(openTorqueMax),
+        closeTorqueMin: toInternalTorque(closeTorqueMin),
+        closeTorqueNominal: toInternalTorque(closeTorqueNominal),
+        closeTorqueMax: toInternalTorque(closeTorqueMax),
+      };
+    });
 }
 
 export function createCustomProduct(curve: TorqueCurvePoint[]): HingeProduct {
@@ -103,6 +121,7 @@ export function createCustomProduct(curve: TorqueCurvePoint[]): HingeProduct {
     hingeType: "free_stop",
     angleRangeDeg: [start, end],
     torqueUnit: "kgfcm",
+    torqueToleranceRatio: DEFAULT_TORQUE_TOLERANCE_RATIO,
     recommendedApplications: ["lid", "monitor", "panel", "cover", "other"],
     note: "CSVで入力されたトルクカーブ",
     curve: sorted,

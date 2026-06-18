@@ -1,6 +1,6 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import type { HingeProduct, SimulationInput, SimulationPoint } from "../types";
-import { clamp, formatForce, formatNumber } from "../utils/units";
+import { clamp, formatForce, formatTorque } from "../utils/units";
 
 interface Object2DViewerProps {
   input: SimulationInput;
@@ -35,7 +35,7 @@ export function Object2DViewer({ input, currentPoint, product, onHandleDistanceC
   const [activePointerId, setActivePointerId] = useState<number | null>(null);
   const width = 760;
   const height = 430;
-  const lengthMm = Math.max(input.objectHeightMm, Math.abs(input.cgXmm) + 90, input.handleDistanceMm + 40);
+  const objectLengthMm = Math.max(1, input.objectHeightMm);
   const thicknessMm = clamp(input.objectDepthMm * 0.32, 28, 92);
   const angleRad = ((input.initialAngleDeg + input.currentAngleDeg) * Math.PI) / 180;
   const cos = Math.cos(angleRad);
@@ -50,13 +50,13 @@ export function Object2DViewer({ input, currentPoint, product, onHandleDistanceC
 
   const objectWorldPoints = [
     rotatePoint(0, -thicknessMm / 2),
-    rotatePoint(lengthMm, -thicknessMm / 2),
-    rotatePoint(lengthMm, thicknessMm / 2),
+    rotatePoint(objectLengthMm, -thicknessMm / 2),
+    rotatePoint(objectLengthMm, thicknessMm / 2),
     rotatePoint(0, thicknessMm / 2),
   ];
   const cgWorld = rotatePoint(input.cgXmm, input.cgYmm);
   const handleWorld = rotatePoint(input.handleDistanceMm, 0);
-  const arrowLengthMm = clamp(lengthMm * 0.22, 56, 110);
+  const arrowLengthMm = clamp(objectLengthMm * 0.22, 56, 110);
   const gravityEndWorld = { x: cgWorld.x, y: cgWorld.y - arrowLengthMm };
   const operationEndWorld = {
     x: handleWorld.x - sin * arrowLengthMm,
@@ -105,6 +105,8 @@ export function Object2DViewer({ input, currentPoint, product, onHandleDistanceC
   const hingeLabel = labelPoint(hinge, -36, 38);
   const cgLabel = labelPoint(cgPoint, 14, -12);
   const handleLabel = labelPoint(handlePoint, 12, 24);
+  const xAxisLabel = { x: width - 64, y: clamp(hinge.y - 10, 26, height - 18) };
+  const yAxisLabel = { x: clamp(hinge.x + 12, 22, width - 58), y: 44 };
   const statusClass = currentPoint.status === "ok" ? "ok" : currentPoint.status === "check" ? "check" : "ng";
   const isHandleDragging = activePointerId !== null;
 
@@ -126,7 +128,7 @@ export function Object2DViewer({ input, currentPoint, product, onHandleDistanceC
     const worldX = (pointerPoint.x - offsetX) / scale;
     const worldY = (offsetY - pointerPoint.y) / scale;
     const localDistanceMm = worldX * cos + worldY * sin;
-    onHandleDistanceChange(Math.round(clamp(localDistanceMm, 1, Math.max(1, input.objectHeightMm))));
+    onHandleDistanceChange(Math.round(clamp(localDistanceMm, 0, objectLengthMm)));
   }
 
   function startHandleDrag(event: ReactPointerEvent<SVGElement>) {
@@ -179,11 +181,34 @@ export function Object2DViewer({ input, currentPoint, product, onHandleDistanceC
           <marker id="arrow-gray" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
             <path d="M0,0 L0,6 L9,3 z" fill="#394150" />
           </marker>
+          <marker id="arrow-axis" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L9,3 z" fill="#9aa5a1" />
+          </marker>
         </defs>
 
         <rect x="0" y="0" width={width} height={height} rx="8" fill="#f8faf8" />
-        <path d={`M 42 ${hinge.y} H ${width - 42}`} stroke="#d8ded8" strokeDasharray="8 8" />
-        <path d={`M ${hinge.x} 54 V ${height - 54}`} stroke="#d8ded8" strokeDasharray="8 8" />
+        <line
+          x1="42"
+          y1={hinge.y}
+          x2={width - 42}
+          y2={hinge.y}
+          className="axis-line"
+          markerEnd="url(#arrow-axis)"
+        />
+        <line
+          x1={hinge.x}
+          y1={height - 54}
+          x2={hinge.x}
+          y2="54"
+          className="axis-line"
+          markerEnd="url(#arrow-axis)"
+        />
+        <text x={xAxisLabel.x} y={xAxisLabel.y} className="axis-label">
+          +X
+        </text>
+        <text x={yAxisLabel.x} y={yAxisLabel.y} className="axis-label">
+          +Y
+        </text>
         <polygon
           points={pointsToString(objectPoints)}
           fill={statusClass === "ng" ? "#fde2de" : statusClass === "check" ? "#fff2d6" : "#e4f5ee"}
@@ -231,8 +256,8 @@ export function Object2DViewer({ input, currentPoint, product, onHandleDistanceC
 
       <div className="viewer-stats">
         <span>{product.productCode}</span>
-        <strong>モーメントアーム {formatNumber(Math.abs(currentPoint.signedLoadMomentKgfcm), 1)} kgf·cm</strong>
-        <strong>保持余裕 {formatNumber(currentPoint.holdingMarginKgfcm, 1)} kgf·cm</strong>
+        <strong>対象物モーメント {formatTorque(Math.abs(currentPoint.signedLoadMomentKgfcm))}</strong>
+        <strong>保持余裕 {formatTorque(currentPoint.holdingMarginKgfcm)}</strong>
         <strong>開操作 {formatForce(currentPoint.openForceN, input.forceUnit)}</strong>
       </div>
     </div>

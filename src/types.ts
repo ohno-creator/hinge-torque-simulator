@@ -40,6 +40,7 @@ export interface HingeProduct {
   hingeType: "free_stop" | "greaseless" | "detent";
   angleRangeDeg: [number, number];
   torqueUnit: "kgfcm";
+  torqueToleranceRatio?: number;
   recommendedApplications: ApplicationType[];
   note: string;
   curve: TorqueCurvePoint[];
@@ -52,6 +53,12 @@ export interface SimulationPoint {
   hingeMinKgfcm: number | null;
   hingeNominalKgfcm: number | null;
   hingeMaxKgfcm: number | null;
+  hingeOpenMinKgfcm: number | null;
+  hingeOpenNominalKgfcm: number | null;
+  hingeOpenMaxKgfcm: number | null;
+  hingeCloseMinKgfcm: number | null;
+  hingeCloseNominalKgfcm: number | null;
+  hingeCloseMaxKgfcm: number | null;
   holdingMarginKgfcm: number | null;
   holdingMarginRatio: number | null;
   openOperationTorqueKgfcm: number | null;

@@ -200,6 +200,68 @@ h1 {
   font-weight: 700;
 }
 
+.field-label-row,
+.metric-label,
+.definition-label,
+.chart-title-with-help,
+.current-strip-item {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: 5px;
+}
+
+.field-label-row,
+.metric-label,
+.definition-label {
+  width: fit-content;
+  max-width: 100%;
+}
+
+.field-label-row > span,
+.metric-label > span,
+.definition-label > span,
+.chart-title-with-help > span {
+  min-width: 0;
+}
+
+.formula-tooltip-trigger {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: #6f7d8d;
+  line-height: 1;
+}
+
+.formula-tooltip-trigger:hover,
+.formula-tooltip-trigger:focus-visible {
+  border-color: rgba(37, 99, 235, 0.32);
+  background: var(--blue-soft);
+  color: var(--blue);
+  outline: none;
+}
+
+.formula-tooltip-bubble {
+  position: fixed;
+  z-index: 1000;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 18px 42px rgba(32, 38, 46, 0.18);
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.65;
+  pointer-events: none;
+}
+
 .field + .field {
   margin-top: 10px;
 }
@@ -486,6 +548,18 @@ h1 {
   font-weight: 900;
 }
 
+.axis-line {
+  stroke: #cfd8d2;
+  stroke-width: 1.5;
+  stroke-dasharray: 8 8;
+}
+
+.axis-label {
+  fill: #64748b;
+  font-size: 15px;
+  font-weight: 900;
+}
+
 .operation-point {
   cursor: grab;
   outline: none;
@@ -562,6 +636,10 @@ h1 {
   margin-bottom: 10px;
   font-size: 0.95rem;
   letter-spacing: 0;
+}
+
+.chart-title-with-help {
+  justify-content: flex-start;
 }
 
 .recharts-wrapper text {

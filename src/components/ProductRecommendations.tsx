@@ -1,6 +1,7 @@
 import { AlertTriangle, CheckCircle2, CircleDashed } from "lucide-react";
 import type { ForceUnit, HoldStatus, Recommendation } from "../types";
-import { formatForce, formatNumber } from "../utils/units";
+import { formatForce, formatNumber, formatTorque } from "../utils/units";
+import { FormulaTooltip } from "./FormulaTooltip";
 
 interface ProductRecommendationsProps {
   recommendations: Recommendation[];
@@ -16,6 +17,12 @@ function StatusMark({ status }: { status: HoldStatus }) {
   }
   return <AlertTriangle size={18} />;
 }
+
+const recommendationHelp = {
+  minMargin: "この候補ヒンジで、全角度の 保持余裕 = 規格下限 - 必要トルク の最小値です。",
+  marginRatio: "余裕率 = 規格下限 ÷ 必要トルク。1.0未満は保持不足、1.1未満は余裕小として扱います。",
+  maxForce: "操作力 = 操作トルク N·m ÷ 操作点距離 m。開方向・閉方向の絶対値の最大です。",
+};
 
 export function ProductRecommendations({ recommendations, forceUnit }: ProductRecommendationsProps) {
   return (
@@ -34,15 +41,24 @@ export function ProductRecommendations({ recommendations, forceUnit }: ProductRe
             </p>
             <dl>
               <div>
-                <dt>最小余裕</dt>
-                <dd>{formatNumber(recommendation.result.minHoldingMarginKgfcm, 1)} kgf·cm</dd>
+                <dt className="definition-label">
+                  <span>最小余裕</span>
+                  <FormulaTooltip>{recommendationHelp.minMargin}</FormulaTooltip>
+                </dt>
+                <dd>{formatTorque(recommendation.result.minHoldingMarginKgfcm)}</dd>
               </div>
               <div>
-                <dt>余裕率</dt>
+                <dt className="definition-label">
+                  <span>余裕率</span>
+                  <FormulaTooltip>{recommendationHelp.marginRatio}</FormulaTooltip>
+                </dt>
                 <dd>{formatNumber(recommendation.result.minHoldingMarginRatio, 2)} 倍</dd>
               </div>
               <div>
-                <dt>最大操作力</dt>
+                <dt className="definition-label">
+                  <span>最大操作力</span>
+                  <FormulaTooltip>{recommendationHelp.maxForce}</FormulaTooltip>
+                </dt>
                 <dd>{formatForce(maxForce, forceUnit)}</dd>
               </div>
             </dl>

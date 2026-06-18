@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Clipboard, Send } from "lucide-react";
 import type { Recommendation, SimulationInput, SimulationResult } from "../types";
-import { formatNumber } from "../utils/units";
+import { formatTorque, kgfcmToNm } from "../utils/units";
 
 interface InquiryCTAProps {
   input: SimulationInput;
@@ -30,8 +30,8 @@ export function InquiryCTA({ input, result, recommendations }: InquiryCTAProps) 
       angleStartDeg: input.angleStartDeg,
       angleEndDeg: input.angleEndDeg,
       handleDistanceMm: input.handleDistanceMm,
-      maxRequiredTorqueKgfcm: Number(result.maxRequiredTorqueKgfcm.toFixed(2)),
-      minHoldingMarginKgfcm: result.minHoldingMarginKgfcm === null ? null : Number(result.minHoldingMarginKgfcm.toFixed(2)),
+      maxRequiredTorqueNm: Number(kgfcmToNm(result.maxRequiredTorqueKgfcm).toFixed(3)),
+      minHoldingMarginNm: result.minHoldingMarginKgfcm === null ? null : Number(kgfcmToNm(result.minHoldingMarginKgfcm).toFixed(3)),
       maxOpenForceN: result.maxOpenForceN === null ? null : Number(result.maxOpenForceN.toFixed(1)),
       maxCloseForceN: result.maxCloseForceN === null ? null : Number(result.maxCloseForceN.toFixed(1)),
       recommendedProduct: recommended,
@@ -54,7 +54,7 @@ export function InquiryCTA({ input, result, recommendations }: InquiryCTAProps) 
         <div>
           <strong>この条件でヒンジ選定を相談する</strong>
           <span>
-            最大必要トルク {formatNumber(result.maxRequiredTorqueKgfcm, 1)} kgf·cm / hinge、候補 {recommended}
+            最大必要トルク {formatTorque(result.maxRequiredTorqueKgfcm)} / hinge、候補 {recommended}
           </span>
         </div>
       </div>

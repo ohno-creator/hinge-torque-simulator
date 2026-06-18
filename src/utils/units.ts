@@ -6,6 +6,14 @@ export function kgfcmToNm(value: number): number {
   return value * KGF_CM_TO_NM;
 }
 
+export function formatTorque(valueKgfcm: number | null | undefined, digits = 2): string {
+  if (valueKgfcm === null || valueKgfcm === undefined) {
+    return "-";
+  }
+
+  return `${formatNumber(kgfcmToNm(valueKgfcm), digits)} N·m`;
+}
+
 export function nToKgf(value: number): number {
   return value / GRAVITY;
 }
