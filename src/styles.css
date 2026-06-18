@@ -47,6 +47,12 @@ button {
   min-height: 100vh;
 }
 
+.app-screen {
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
 .app-header {
   display: flex;
   align-items: flex-end;
@@ -90,8 +96,10 @@ h1 {
   display: grid;
   grid-template-columns: minmax(320px, 390px) minmax(0, 1fr);
   gap: 18px;
-  align-items: start;
-  padding: 18px clamp(14px, 3vw, 40px) 34px;
+  align-items: stretch;
+  min-height: 0;
+  overflow: hidden;
+  padding: 18px clamp(14px, 3vw, 40px);
 }
 
 .panel {
@@ -132,9 +140,11 @@ h1 {
 }
 
 .input-panel {
-  position: sticky;
-  top: 16px;
-  overflow: hidden;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .segmented {
@@ -298,7 +308,15 @@ h1 {
 .main-stack {
   display: grid;
   gap: 18px;
+  align-content: start;
+  height: 100%;
+  min-height: 0;
   min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
 }
 
 .result-summary {
@@ -682,14 +700,31 @@ h1 {
 }
 
 @media (max-width: 1180px) {
+  .app-screen {
+    display: block;
+    height: auto;
+  }
+
   .workspace,
   .visual-grid,
   .lower-grid {
     grid-template-columns: 1fr;
   }
 
-  .input-panel {
-    position: static;
+  .workspace {
+    align-items: start;
+    overflow: visible;
+    padding-bottom: 34px;
+  }
+
+  .input-panel,
+  .main-stack {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+    overscroll-behavior: auto;
+    padding-right: 0;
+    scrollbar-gutter: auto;
   }
 
   .metric-grid {

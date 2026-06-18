@@ -90,78 +90,80 @@ function App() {
 
   return (
     <div className="app">
-      <header className="app-header">
-        <div>
-          <p className="eyebrow">HINGE TORQUE SIMULATOR</p>
-          <h1>ヒンジ トルク計算・保持力シミュレーター</h1>
-          <p className="lead">重量、重心、可動角度から、必要トルク・保持余裕・操作力を同時に確認できます。</p>
-        </div>
-        <div className={`status-pill status-${result.overallStatus}`}>
-          <Gauge size={18} />
-          <span>{result.overallStatus === "ok" ? "保持可能" : result.overallStatus === "check" ? "余裕小" : "保持不足"}</span>
-        </div>
-      </header>
+      <div className="app-screen">
+        <header className="app-header">
+          <div>
+            <p className="eyebrow">HINGE TORQUE SIMULATOR</p>
+            <h1>ヒンジ トルク計算・保持力シミュレーター</h1>
+            <p className="lead">重量、重心、可動角度から、必要トルク・保持余裕・操作力を同時に確認できます。</p>
+          </div>
+          <div className={`status-pill status-${result.overallStatus}`}>
+            <Gauge size={18} />
+            <span>{result.overallStatus === "ok" ? "保持可能" : result.overallStatus === "check" ? "余裕小" : "保持不足"}</span>
+          </div>
+        </header>
 
-      <main className="workspace">
-        <InputPanel
-          input={input}
-          products={products}
-          csvText={csvText}
-          onCsvTextChange={setCsvText}
-          onApplyCsv={applyCsvCurve}
-          onChange={updateInput}
-        />
+        <main className="workspace">
+          <InputPanel
+            input={input}
+            products={products}
+            csvText={csvText}
+            onCsvTextChange={setCsvText}
+            onApplyCsv={applyCsvCurve}
+            onChange={updateInput}
+          />
 
-        <section className="main-stack" aria-label="計算結果">
-          <ResultSummary input={input} product={selectedProduct} result={result} currentPoint={currentPoint} />
+          <section className="main-stack" aria-label="計算結果">
+            <ResultSummary input={input} product={selectedProduct} result={result} currentPoint={currentPoint} />
 
-          <section className="visual-grid">
-            <div className="panel visual-panel">
-              <div className="panel-title">
-                <Target size={18} />
-                <h2>2D保持確認</h2>
+            <section className="visual-grid">
+              <div className="panel visual-panel">
+                <div className="panel-title">
+                  <Target size={18} />
+                  <h2>2D保持確認</h2>
+                </div>
+                <Object2DViewer input={input} currentPoint={currentPoint} product={selectedProduct} />
               </div>
-              <Object2DViewer input={input} currentPoint={currentPoint} product={selectedProduct} />
-            </div>
-            <div className="panel visual-panel">
-              <div className="panel-title">
-                <Box size={18} />
-                <h2>3D確認</h2>
+              <div className="panel visual-panel">
+                <div className="panel-title">
+                  <Box size={18} />
+                  <h2>3D確認</h2>
+                </div>
+                <Suspense fallback={<div className="loader-panel">3Dビューを読み込み中</div>}>
+                  <Object3DViewer input={input} currentPoint={currentPoint} />
+                </Suspense>
               </div>
-              <Suspense fallback={<div className="loader-panel">3Dビューを読み込み中</div>}>
-                <Object3DViewer input={input} currentPoint={currentPoint} />
+            </section>
+
+            <section className="panel">
+              <div className="panel-title">
+                <BarChart3 size={18} />
+                <h2>トルク・余裕・操作力</h2>
+              </div>
+              <Suspense fallback={<div className="loader-panel">グラフを読み込み中</div>}>
+                <TorqueCharts result={result} forceUnit={input.forceUnit} />
               </Suspense>
-            </div>
-          </section>
+            </section>
 
-          <section className="panel">
-            <div className="panel-title">
-              <BarChart3 size={18} />
-              <h2>トルク・余裕・操作力</h2>
-            </div>
-            <Suspense fallback={<div className="loader-panel">グラフを読み込み中</div>}>
-              <TorqueCharts result={result} forceUnit={input.forceUnit} />
-            </Suspense>
-          </section>
-
-          <section className="lower-grid">
-            <div className="panel">
-              <div className="panel-title">
-                <FileText size={18} />
-                <h2>推奨ヒンジ候補</h2>
+            <section className="lower-grid">
+              <div className="panel">
+                <div className="panel-title">
+                  <FileText size={18} />
+                  <h2>推奨ヒンジ候補</h2>
+                </div>
+                <ProductRecommendations recommendations={recommendations} forceUnit={input.forceUnit} />
               </div>
-              <ProductRecommendations recommendations={recommendations} forceUnit={input.forceUnit} />
-            </div>
-            <div className="panel">
-              <div className="panel-title">
-                <Mail size={18} />
-                <h2>問い合わせ条件</h2>
+              <div className="panel">
+                <div className="panel-title">
+                  <Mail size={18} />
+                  <h2>問い合わせ条件</h2>
+                </div>
+                <InquiryCTA input={input} result={result} recommendations={recommendations} />
               </div>
-              <InquiryCTA input={input} result={result} recommendations={recommendations} />
-            </div>
+            </section>
           </section>
-        </section>
-      </main>
+        </main>
+      </div>
 
       <SeoFaq />
     </div>
