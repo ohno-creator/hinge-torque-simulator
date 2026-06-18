@@ -1,3 +1,4 @@
+import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import type { HingeProduct, SimulationInput, SimulationPoint } from "../types";
 import { clamp, formatForce, formatNumber } from "../utils/units";
 
@@ -5,6 +6,7 @@ interface Object2DViewerProps {
   input: SimulationInput;
   currentPoint: SimulationPoint;
   product: HingeProduct;
+  onHandleDistanceChange?: (handleDistanceMm: number) => void;
 }
 
 interface Point {
@@ -28,7 +30,9 @@ function createBounds(points: Point[]) {
   };
 }
 
-export function Object2DViewer({ input, currentPoint, product }: Object2DViewerProps) {
+export function Object2DViewer({ input, currentPoint, product, onHandleDistanceChange }: Object2DViewerProps) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [activePointerId, setActivePointerId] = useState<number | null>(null);
   const width = 760;
   const height = 430;
   const lengthMm = Math.max(input.objectHeightMm, Math.abs(input.cgXmm) + 90, input.handleDistanceMm + 40);
@@ -102,10 +106,69 @@ export function Object2DViewer({ input, currentPoint, product }: Object2DViewerP
   const cgLabel = labelPoint(cgPoint, 14, -12);
   const handleLabel = labelPoint(handlePoint, 12, 24);
   const statusClass = currentPoint.status === "ok" ? "ok" : currentPoint.status === "check" ? "check" : "ng";
+  const isHandleDragging = activePointerId !== null;
+
+  function updateHandleDistanceFromPointer(event: ReactPointerEvent<SVGElement>) {
+    if (!onHandleDistanceChange) {
+      return;
+    }
+
+    const svg = svgRef.current;
+    const matrix = svg?.getScreenCTM();
+    if (!svg || !matrix) {
+      return;
+    }
+
+    const svgPoint = svg.createSVGPoint();
+    svgPoint.x = event.clientX;
+    svgPoint.y = event.clientY;
+    const pointerPoint = svgPoint.matrixTransform(matrix.inverse());
+    const worldX = (pointerPoint.x - offsetX) / scale;
+    const worldY = (offsetY - pointerPoint.y) / scale;
+    const localDistanceMm = worldX * cos + worldY * sin;
+    onHandleDistanceChange(Math.round(clamp(localDistanceMm, 1, Math.max(1, input.objectHeightMm))));
+  }
+
+  function startHandleDrag(event: ReactPointerEvent<SVGElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    setActivePointerId(event.pointerId);
+    svgRef.current?.setPointerCapture(event.pointerId);
+    updateHandleDistanceFromPointer(event);
+  }
+
+  function dragHandle(event: ReactPointerEvent<SVGSVGElement>) {
+    if (event.pointerId !== activePointerId) {
+      return;
+    }
+
+    event.preventDefault();
+    updateHandleDistanceFromPointer(event);
+  }
+
+  function stopHandleDrag(event: ReactPointerEvent<SVGSVGElement>) {
+    if (event.pointerId !== activePointerId) {
+      return;
+    }
+
+    if (svgRef.current?.hasPointerCapture(event.pointerId)) {
+      svgRef.current.releasePointerCapture(event.pointerId);
+    }
+    setActivePointerId(null);
+  }
 
   return (
     <div className="viewer">
-      <svg className="object-svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="2Dヒンジ保持確認図">
+      <svg
+        ref={svgRef}
+        className="object-svg"
+        viewBox={`0 0 ${width} ${height}`}
+        role="img"
+        aria-label="2Dヒンジ保持確認図"
+        onPointerMove={dragHandle}
+        onPointerUp={stopHandleDrag}
+        onPointerCancel={stopHandleDrag}
+      >
         <defs>
           <marker id="arrow-red" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
             <path d="M0,0 L0,6 L9,3 z" fill="#c2413d" />
@@ -133,8 +196,18 @@ export function Object2DViewer({ input, currentPoint, product }: Object2DViewerP
         <line x1={momentArm.x} y1={hinge.y} x2={cgPoint.x} y2={cgPoint.y} stroke="#7c5c2e" strokeWidth="2" strokeDasharray="4 5" />
         <circle cx={cgPoint.x} cy={cgPoint.y} r="9" fill="#c2413d" />
         <line x1={cgPoint.x} y1={cgPoint.y + 12} x2={gravityEnd.x} y2={gravityEnd.y} stroke="#c2413d" strokeWidth="4" markerEnd="url(#arrow-red)" />
-        <circle cx={handlePoint.x} cy={handlePoint.y} r="7" fill="#2563eb" />
         <line x1={handlePoint.x} y1={handlePoint.y} x2={operationEnd.x} y2={operationEnd.y} stroke="#2563eb" strokeWidth="4" markerEnd="url(#arrow-blue)" />
+        <g
+          className={`operation-point${isHandleDragging ? " dragging" : ""}`}
+          role="button"
+          tabIndex={0}
+          aria-label={`操作点距離 ${input.handleDistanceMm.toFixed(0)} mm`}
+          onPointerDown={startHandleDrag}
+        >
+          <title>操作点をドラッグして距離を変更</title>
+          <circle className="operation-hit-target" cx={handlePoint.x} cy={handlePoint.y} r="19" />
+          <circle cx={handlePoint.x} cy={handlePoint.y} r="7" fill="#2563eb" />
+        </g>
         <path
           d={`M ${hinge.x + 36} ${hinge.y - 18} A 58 58 0 0 0 ${hinge.x + 72 * Math.cos(angleRad)} ${hinge.y - 72 * Math.sin(angleRad)}`}
           fill="none"

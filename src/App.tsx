@@ -122,7 +122,12 @@ function App() {
                   <Target size={18} />
                   <h2>2D保持確認</h2>
                 </div>
-                <Object2DViewer input={input} currentPoint={currentPoint} product={selectedProduct} />
+                <Object2DViewer
+                  input={input}
+                  currentPoint={currentPoint}
+                  product={selectedProduct}
+                  onHandleDistanceChange={(handleDistanceMm) => updateInput({ handleDistanceMm })}
+                />
               </div>
               <div className="panel visual-panel">
                 <div className="panel-title">

@@ -486,6 +486,26 @@ h1 {
   font-weight: 900;
 }
 
+.operation-point {
+  cursor: grab;
+  outline: none;
+  touch-action: none;
+}
+
+.operation-point.dragging {
+  cursor: grabbing;
+}
+
+.operation-point:focus-visible circle:last-child {
+  stroke: #ffffff;
+  stroke-width: 3;
+}
+
+.operation-hit-target {
+  fill: transparent;
+  pointer-events: all;
+}
+
 .viewer-stats {
   display: flex;
   flex-wrap: wrap;
